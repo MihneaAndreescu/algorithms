@@ -1,0 +1,179 @@
+class SuffixArray {
+private:
+  bool stringSet;
+  string s;
+public:
+  explicit SuffixArray(string s) : s(s), stringSet(1) {
+  }
+
+  SuffixArray() : stringSet(0) {
+  }
+
+  SuffixArray(SuffixArray& other) = default;
+  SuffixArray(SuffixArray&& other) = default;
+  ~SuffixArray() = default;
+
+  SuffixArray operator = (SuffixArray& other) {}
+  SuffixArray operator = (SuffixArray&& other) noexcept {}
+
+
+  bool isStringSet() {
+    return stringSet;
+  }
+
+  void setString(string newString) {
+    stringSet = 1;
+    s = newString;
+  }
+
+  void unsetString() {
+    stringSet = 0;
+  }
+
+  vector<int> computeSuffixOrder() {
+    assert(stringSet);
+
+    map<char, int> stringChars;
+    for (auto &ch : s) {
+      stringChars[ch] = 0;
+    }
+
+    int maxValue = 0;
+
+    for (auto &it : stringChars) {
+      it.second = maxValue++;
+    }
+
+    int n = (int) s.size();
+
+    vector<int> v(n);
+    vector<int> cnt(n, 0);
+    vector<int> order(n, -1);
+    vector<int> equivalenceClass(n);
+    vector<int> equivalenceClassCopy(n);
+    vector<int> newOrder(n);
+
+    for (int i = 0; i < n; i++) {
+      v[i] = stringChars[s[i]];
+      cnt[v[i]]++;
+      equivalenceClass[i] = v[i];
+    }
+    for (int i = 1; i < maxValue; i++) {
+      cnt[i] += cnt[i - 1];
+    }
+    for (int i = 0; i < n; i++) {
+      order[--cnt[v[i]]] = i;
+    }
+    for (int i = 0; i < n; i++) {
+      cnt[i] = 0;
+    }
+
+    int currentLength = 1;
+    while (currentLength < n) {
+      for (auto &i : order) {
+        cnt[equivalenceClass[i]]++;
+        equivalenceClassCopy[i] = equivalenceClass[i];
+      }
+      for (int i = 1; i < n; i++) {
+        cnt[i] += cnt[i - 1];
+      }
+      for (int it = n - 1; it >= 0; it--) {
+        int j = (order[it] - currentLength + n) % n;
+        newOrder[--cnt[equivalenceClass[j]]] = j;
+      }
+      order = newOrder;
+      int currentClass = 0;
+      for (int j = 0; j < n; j++) {
+        currentClass += (j == 0 || make_pair(equivalenceClassCopy[order[j]], equivalenceClassCopy[(order[j] + currentLength) % n]) != make_pair(equivalenceClassCopy[order[j - 1]], equivalenceClassCopy[(order[j - 1] + currentLength) % n]));
+        equivalenceClass[order[j]] = currentClass - 1;
+        cnt[j] = 0;
+      }
+      currentLength *= 2;
+    }
+
+    return order;
+  }
+
+  pair<vector<int>, vector<int>> computeSuffixOrderAndLcp() {
+    assert(stringSet);
+
+    map<char, int> stringChars;
+    for (auto &ch : s) {
+      stringChars[ch] = 0;
+    }
+
+    int maxValue = 0;
+
+    for (auto &it : stringChars) {
+      it.second = maxValue++;
+    }
+
+    int n = (int) s.size();
+
+    vector<int> v(n);
+    vector<int> cnt(n, 0);
+    vector<int> order(n, -1);
+    vector<int> equivalenceClass(n);
+    vector<int> equivalenceClassCopy(n);
+    vector<int> newOrder(n);
+
+    for (int i = 0; i < n; i++) {
+      v[i] = stringChars[s[i]];
+      cnt[v[i]]++;
+      equivalenceClass[i] = v[i];
+    }
+    for (int i = 1; i < maxValue; i++) {
+      cnt[i] += cnt[i - 1];
+    }
+    for (int i = 0; i < n; i++) {
+      order[--cnt[v[i]]] = i;
+    }
+    for (int i = 0; i < n; i++) {
+      cnt[i] = 0;
+    }
+
+    int currentLength = 1;
+    while (currentLength < n) {
+      for (auto &i : order) {
+        cnt[equivalenceClass[i]]++;
+        equivalenceClassCopy[i] = equivalenceClass[i];
+      }
+      for (int i = 1; i < n; i++) {
+        cnt[i] += cnt[i - 1];
+      }
+      for (int it = n - 1; it >= 0; it--) {
+        int j = (order[it] - currentLength + n) % n;
+        newOrder[--cnt[equivalenceClass[j]]] = j;
+      }
+      order = newOrder;
+      int currentClass = 0;
+      for (int j = 0; j < n; j++) {
+        currentClass += (j == 0 || make_pair(equivalenceClassCopy[order[j]], equivalenceClassCopy[(order[j] + currentLength) % n]) != make_pair(equivalenceClassCopy[order[j - 1]], equivalenceClassCopy[(order[j - 1] + currentLength) % n]));
+        equivalenceClass[order[j]] = currentClass - 1;
+        cnt[j] = 0;
+      }
+      currentLength *= 2;
+    }
+
+    vector<int> lcp(n, 0);
+    int k = 0;
+
+    for (auto &i : equivalenceClass) {
+      k = max(0, k - 1);
+      if (i) {
+        int a = order[i - 1], b = order[i];
+        while (max(a, b) + k < n && v[a + k] == v[b + k]) {
+          k++;
+        }
+        lcp[i] = k;
+      }
+    }
+
+    vector<int> newLcp(n - 1);
+    for (int i = 0; i < n - 1; i++) {
+      newLcp[i] = lcp[i + 1];
+    }
+
+    return {order, newLcp};
+  }
+};
